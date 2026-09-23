@@ -1,0 +1,9 @@
+# Your real resume. Keep it out of git if the repo is public — store it in the
+# RESUME_YAML secret instead. (Private repo? You can delete this line and commit it.)
+resume.yaml
+out/
+state/
+__pycache__/
+*.pyc
+.venv/
+.env

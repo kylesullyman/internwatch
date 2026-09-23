@@ -1,0 +1,112 @@
+name: internwatch
+
+on:
+  schedule:
+    # Every 10 minutes, offset from :00 (GitHub delays jobs scheduled on the hour the most).
+    # Scheduled runs can start 5–15 min late under load; that's still well inside an hour.
+    - cron: "4,14,24,34,44,54 * * * *"
+  workflow_dispatch:
+    inputs:
+      tailor_url:
+        description: "Tailor your resume for this posting URL (leave empty for a normal poll)"
+        required: false
+      company:
+        description: "Company name (for tailor)"
+        required: false
+      title:
+        description: "Job title (for tailor)"
+        required: false
+
+concurrency:
+  group: internwatch        # never run two polls at once (they'd race on the state)
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write            # cache + the keepalive call below
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # Seen-jobs state lives in the Actions cache, not in git, so the repo doesn't
+      # grow by a commit every 10 minutes. If the cache is ever lost, the next run
+      # re-seeds silently (no alert flood).
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: iw-state-${{ github.run_id }}
+          restore-keys: iw-state-
+
+      - name: Write resume from secret
+        env:
+          RESUME_YAML: ${{ secrets.RESUME_YAML }}
+        run: |
+          if [ -n "$RESUME_YAML" ]; then printf '%s\n' "$RESUME_YAML" > resume.yaml; fi
+          test -f resume.yaml && echo "resume.yaml present" || echo "no resume.yaml — alerts will be sent without tailoring"
+
+      - name: Poll
+        if: ${{ !inputs.tailor_url }}
+        run: python -m internwatch run
+
+      - name: Tailor on demand
+        if: ${{ inputs.tailor_url }}
+        env:
+          URL: ${{ inputs.tailor_url }}
+          COMPANY: ${{ inputs.company }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          args=("$URL" --notify)
+          [ -n "$COMPANY" ] && args+=(--company "$COMPANY")
+          [ -n "$TITLE" ] && args+=(--title "$TITLE")
+          python -m internwatch tailor "${args[@]}"
+
+      - name: Save state
+        if: ${{ always() && !inputs.tailor_url }}
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: iw-state-${{ github.run_id }}
+
+      # Artifacts in a PUBLIC repo can be downloaded by anyone, so only keep the PDFs
+      # here when the repo is private. They're always delivered by email/ntfy regardless.
+      - name: Keep tailored resumes (private repos only)
+        if: ${{ always() && github.event.repository.private }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailored-${{ github.run_id }}
+          path: out/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # GitHub disables scheduled workflows after 60 days without repo activity.
+      # Re-enabling through the API once a day resets that clock.
+      - name: Keepalive
+        if: ${{ github.event_name == 'schedule' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(date -u +%H)" = "00" ]; then
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/watch.yml/enable" || true
+          fi

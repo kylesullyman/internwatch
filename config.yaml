@@ -1,0 +1,160 @@
+# internwatch configuration. Secrets (API keys, SMTP password, ntfy topic) are NOT here —
+# they come from environment variables / GitHub Actions secrets. See README.
+
+state_file: state/seen.json
+
+# ─── What to watch ─────────────────────────────────────────────────────────────────────
+sources:
+  # Community lists. simplify_json reads the JSON the README is generated from.
+  github_lists:
+    - name: simplify
+      format: simplify_json
+      url: https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json
+    - name: vanshb03
+      format: simplify_json
+      url: https://raw.githubusercontent.com/vanshb03/Summer2027-Internships/dev/.github/scripts/listings.json
+    - name: speedyapply
+      format: markdown_table
+      url: https://raw.githubusercontent.com/speedyapply/2027-SWE-College-Jobs/main/README.md
+    # New-grad lists (full-time roles starting after May 2027 graduation).
+    - name: simplify-newgrad
+      format: simplify_json
+      url: https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json
+    - name: speedyapply-newgrad
+      format: markdown_table
+      url: https://raw.githubusercontent.com/speedyapply/2027-SWE-College-Jobs/main/NEW_GRAD_USA.md
+
+  # Company ATS boards, polled directly — these catch postings the minute they go live,
+  # before any list picks them up. Board token = the slug in the company's job URL:
+  #   job-boards.greenhouse.io/<token>   jobs.lever.co/<token>   jobs.ashbyhq.com/<token>
+  greenhouse: [anthropic, epicgames, riotgames, roblox, sonyinteractiveentertainmentglobal, naughtydog,
+               insomniac, figma, discord, databricks, scaleai, waymo, nuro, spacex, neuralink, stripe,
+               cloudflare, pinterest, lyft, airbnb, doordashusa, robinhood, coinbase, samsara, twitch]
+  lever: [palantir, zoox, shieldai, spotify]
+  ashby:
+    - openai
+    - {board: rivianvw.tech, name: Rivian}
+    - perplexity
+    - cohere
+    - cursor
+    - elevenlabs
+    - notion
+    - ramp
+    - replit
+    - harvey
+  # Workday search isn't date-sorted, so each poll pages through every result for `search`.
+  # Find host/site from any job URL: https://<host>/en-US/<site>/job/...
+  workday:
+    - {name: NVIDIA, host: nvidia.wd5.myworkdayjobs.com, site: NVIDIAExternalCareerSite, search: intern, max_results: 1200}
+    - {name: Intel, host: intel.wd1.myworkdayjobs.com, site: External, search: intern}
+    - {name: Adobe, host: adobe.wd5.myworkdayjobs.com, site: external_experienced, search: intern}
+    - {name: Salesforce, host: salesforce.wd12.myworkdayjobs.com, site: External_Career_Site, search: intern}
+    - {name: Disney, host: disney.wd5.myworkdayjobs.com, site: disneycareer, search: intern}
+    - {name: Marvell, host: marvell.wd1.myworkdayjobs.com, site: MarvellCareers, search: intern}
+    - {name: Broadcom, host: broadcom.wd1.myworkdayjobs.com, site: External_Career, search: intern}
+
+# ─── Hard filters (a posting must pass all of these) ──────────────────────────────────
+filters:
+  # Only applied to ATS boards (lists are already internship/new-grad only).
+  title_include: [intern, internship, co-op, coop, "new grad", "new graduate", "university grad",
+                  "university graduate", "college grad", "early career", "entry level", "entry-level",
+                  "graduate program", rotational, "software engineer i", "associate software engineer"]
+  title_exclude: [phd, ph.d, doctoral, "master's", masters, mba, sales, marketing, "business development",
+                  recruiting, recruiter, "human resources", legal, accounting, "supply chain", manufacturing,
+                  mechanical, civil, chemical, "tax", "audit", "communications intern",
+                  senior, staff, principal, manager, analyst, analytics, insights, "data governance",
+                  "product design", ux, "ui/ux", analog, layout, "physical design", "mixed-signal", rf,
+                  "reliability engineer", "process engineer", technician, "labor relations", actuarial,
+                  "immediate start", "start immediately"]    # you can't start before graduating
+  # Summer 2027 internships + new-grad roles. Titles naming another season/year (e.g. "New Grad
+  # 2026", "Fall 2026 Intern") are dropped. Summer 2027 internships usually expect you to return
+  # to school afterwards — fine if you do the MS; otherwise new-grad roles are the main target.
+  terms: ["Summer 2027"]
+  degrees: ["Bachelor's"]     # drop list entries that are Master's/PhD-only
+  categories: [Software, AI/ML/Data, Hardware]     # Simplify's categories; Product/Quant excluded
+  us_only: true
+  max_age_hours: 72          # ignore list entries whose posted date is older than this
+  exclude_companies: []
+
+# ─── Ranking (decides instant alert vs. digest, and what gets a tailored resume) ───────
+scoring:
+  title_keywords:
+    graphics: 6
+    rendering: 6
+    gpu: 6
+    cuda: 6
+    vulkan: 5
+    directx: 5
+    shader: 5
+    game: 4
+    games: 4
+    gameplay: 4
+    engine: 3
+    unreal: 4
+    unity: 3
+    simulation: 3
+    "computer vision": 4
+    "deep learning": 4
+    "machine learning": 4
+    ml: 3
+    ai: 3
+    llm: 3
+    "c++": 4
+    systems: 3
+    performance: 3
+    compiler: 3
+    backend: 2
+    infrastructure: 2
+    "software engineer": 3
+    "software engineering": 3
+    "software development": 3
+    "software developer": 3
+    optics: 3
+    photonics: 3
+    robotics: 2
+    embedded: 2
+    research: 1
+  company_boost:
+    NVIDIA: 8
+    Epic Games: 4
+    Riot Games: 4
+    Sony Interactive Entertainment: 4
+    Naughty Dog: 4
+    Insomniac Games: 4
+    Roblox: 3
+    Anthropic: 3
+    OpenAI: 3
+    Intel: 2
+    AMD: 3
+    Adobe: 2
+    Rivian: 2
+  location_boost:          # first match wins
+    Irvine: 3
+    Costa Mesa: 3
+    "Orange County": 3
+    Santa Ana: 3
+    Anaheim: 3
+    Los Angeles: 2
+    Santa Monica: 2
+    Culver City: 2
+    El Segundo: 2
+    "San Diego": 2
+    "San Francisco": 1
+    SF: 1
+    "Bay Area": 1
+    Seattle: 1
+    ", CA": 1
+    California: 1
+    Remote: 1
+
+notify:
+  instant_min_score: 5     # below this, matches go into one digest per run instead of a push each
+  digest: true
+
+tailoring:
+  enabled: true
+  resume: resume.yaml      # your base resume (see resume.example.yaml)
+  min_score: 8             # only tailor for matches scoring at least this
+  max_per_run: 6           # caps API spend when a big batch drops at once
+  urgent_fit: 8            # fit score (from Claude) that makes the push max priority
+  model: claude-sonnet-5

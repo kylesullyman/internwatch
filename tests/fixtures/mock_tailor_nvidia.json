@@ -1,0 +1,46 @@
+{
+  "summary": "CS student (May 2027) with C++ systems and graphics projects and Python instrumentation work, targeting GPU software tooling.",
+  "coursework": ["Operating Systems", "Linear Algebra", "Computer Architecture", "Data Structures", "Databases", "Computer Graphics"],
+  "sections": [
+    {"id": "experience", "entries": [
+      {"id": "lab", "bullets": [
+        {"source_id": "lab-2", "text": "Reverse-engineered a motorized stage's byte-level serial (UART) protocol and wrapped it in a tested Python API used by the lab's acquisition tooling"},
+        {"source_id": "lab-1", "text": "Built a Python controller and PyQt GUI that replaced manual stage positioning in a polarimetry experiment"},
+        {"source_id": "lab-4", "text": "Porting the controller to C++ with CUDA to cut acquisition latency 3x"},
+        {"source_id": "lab-3", "text": "Wrote NumPy scripts that turn raw sensor logs into stress–strain plots for a conference paper draft"}
+      ]},
+      {"id": "ta", "bullets": [
+        {"source_id": "ta-2", "text": "Write test harnesses that catch common C++ memory errors in student submissions"},
+        {"source_id": "ta-1", "text": "Teach C++ pointers, linked lists, trees and hash tables to 40 students in weekly office hours"}
+      ]}
+    ]},
+    {"id": "projects", "entries": [
+      {"id": "raytracer", "bullets": [
+        {"source_id": "rt-1", "text": "Wrote a multithreaded Monte Carlo path tracer in C++ with a BVH acceleration structure and tile-parallel rendering"},
+        {"source_id": "rt-2", "text": "Implemented importance sampling for diffuse and glossy materials"}
+      ]},
+      {"id": "mips", "bullets": [
+        {"source_id": "mips-1", "text": "Designed a single-cycle MIPS datapath (ALU, register file, control unit) executing R/I/J-type instructions"}
+      ]},
+      {"id": "fps", "bullets": [
+        {"source_id": "fps-3", "text": "Profiled frame time with the Unity Profiler and removed GC allocations from the hot path"},
+        {"source_id": "fps-1", "text": "Implemented client-side prediction and server reconciliation for player movement on a 5-person team"}
+      ]},
+      {"id": "ghost", "bullets": [{"source_id": "x", "text": "Invented project"}]}
+    ]}
+  ],
+  "skills": [
+    {"category": "Languages", "items": ["C++", "Python", "C", "Java", "SQL", "CUDA", "C#"]},
+    {"category": "Tools", "items": ["Linux", "Git", "CMake", "pytest", "NumPy"]}
+  ],
+  "changes": [
+    {"what": "Led with systems work: UART protocol, C++ port, path tracer, MIPS datapath", "why": "Tools Infrastructure and Development Tools tracks ask for C++, Linux, OS and low-level debugging"},
+    {"what": "Moved Operating Systems and Linear Algebra to the front of coursework", "why": "Listed explicitly under Development Tools requirements"},
+    {"what": "Dropped the MCP server project", "why": "Least relevant to NVIDIA's listed tracks; freed space for systems bullets"},
+    {"what": "Surfaced CMake and pytest from extra skills", "why": "Build and test tooling matches the tools-infrastructure focus"}
+  ],
+  "fit": {"score": 6, "one_liner": "Solid C++/systems base for the tools tracks; no GPU or CUDA experience yet.",
+          "strengths": ["C++ systems projects", "Linux and Python tooling", "Low-level protocol work"],
+          "gaps": ["No CUDA/GPU programming shown", "No Docker/Kubernetes", "No Perforce or large-codebase experience"],
+          "interview_prep": ["Be ready to explain BVH construction and traversal cost", "Review OS memory management and scheduling basics", "Know the CUDA execution model at a high level"]}
+}

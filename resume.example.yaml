@@ -1,0 +1,101 @@
+# EXAMPLE ONLY — a fictional student. Copy to resume.yaml and replace with your real resume.
+# The tailor can only reword/reorder/select what's here, so put EVERYTHING true in this file:
+# more bullets than fit on a page is good — the tailor picks the relevant ones per job.
+#
+# Rules the code enforces when tailoring:
+#   - a rewritten bullet can't mention a number or technology its entry doesn't already mention
+#     (so list the tech you used in `tags` or in the bullets themselves)
+#   - skills come only from `skills` + `extra_skills`
+name: Alex Example
+contact:
+  - {label: "Irvine, CA"}
+  - {label: "alex@example.com", url: "mailto:alex@example.com"}
+  - {label: "(555) 010-0000"}
+  - {label: "github.com/alex-example", url: "https://github.com/alex-example"}
+  - {label: "linkedin.com/in/alex-example", url: "https://linkedin.com/in/alex-example"}
+
+summary: ""          # leave empty to let the tailor write a one-line summary per job (or none)
+
+education:
+  - id: edu
+    heading: Example University
+    org: B.S. Computer Science, Minor in Game Development
+    location: Orange, CA
+    dates: Expected May 2027
+    bullets: ["GPA: 3.6/4.0"]
+    coursework: [Data Structures, Algorithms, Computer Architecture, Operating Systems, Computer Graphics,
+                 Linear Algebra, Discrete Mathematics, Game Engine Programming, Machine Learning, Databases]
+
+sections:
+  - id: experience
+    title: Experience
+    entries:
+      - id: lab
+        heading: Undergraduate Research Assistant
+        org: Example Optics Lab
+        location: Orange, CA
+        dates: Jan 2025 – Present
+        tags: [Python, serial, UART, PyQt, NumPy, instrumentation]
+        bullets:
+          - {id: lab-1, text: "Built a Python controller and PyQt GUI for a motorized stage, replacing manual positioning in a polarimetry experiment"}
+          - {id: lab-2, text: "Reverse-engineered the stage's byte-level serial (UART) command protocol and wrapped it in a tested Python API"}
+          - {id: lab-3, text: "Wrote NumPy analysis scripts that turned raw sensor logs into stress–strain plots used in a conference paper draft"}
+          - {id: lab-4, text: "Began porting the controller to C++ for lower-latency acquisition"}
+      - id: ta
+        heading: Teaching Assistant, Data Structures
+        org: Example University
+        location: Orange, CA
+        dates: Aug 2025 – Present
+        tags: [C++]
+        bullets:
+          - {id: ta-1, text: "Hold weekly office hours for 40 students on C++ pointers, linked lists, trees and hash tables"}
+          - {id: ta-2, text: "Grade programming assignments and write test harnesses that catch common memory errors"}
+
+  - id: projects
+    title: Projects
+    entries:
+      - id: fps
+        heading: Multiplayer FPS
+        org: Unity, C#
+        dates: Spring 2026
+        tags: [Unity, C#, networking, procedural animation, team of 5]
+        bullets:
+          - {id: fps-1, text: "Implemented client-side prediction and server reconciliation for player movement in a 5-person team project"}
+          - {id: fps-2, text: "Built procedural foot-placement and aim animation with inverse kinematics"}
+          - {id: fps-3, text: "Profiled frame time with the Unity Profiler and cut GC allocations in the hot path"}
+      - id: raytracer
+        heading: CPU Path Tracer
+        org: C++
+        dates: Fall 2025
+        tags: [C++, path tracing, BVH, multithreading]
+        bullets:
+          - {id: rt-1, text: "Wrote a Monte Carlo path tracer in C++ with a BVH acceleration structure and multithreaded tile rendering"}
+          - {id: rt-2, text: "Implemented importance sampling for diffuse and glossy materials"}
+      - id: mcp
+        heading: Notes MCP Server
+        org: Python
+        dates: Fall 2025
+        tags: [Python, MCP, LLM]
+        bullets:
+          - {id: mcp-1, text: "Built a Model Context Protocol server exposing search and note-editing tools to an LLM assistant"}
+      - id: mips
+        heading: Single-Cycle MIPS Datapath
+        org: Logisim
+        dates: Spring 2025
+        tags: [MIPS, Logisim, computer architecture]
+        bullets:
+          - {id: mips-1, text: "Designed a single-cycle MIPS datapath with ALU, register file and control unit supporting R/I/J instructions"}
+
+skills:
+  Languages: [C++, Python, C#, C, Java, SQL, MIPS assembly]
+  Graphics & Games: [Unity, path tracing]
+  Tools: [Git, Linux, PyQt, NumPy, Logisim]
+# True skills that don't fit on the default resume; the tailor may surface these when relevant.
+extra_skills: [CMake, pytest, Blender]
+
+tailoring:
+  pinned: [lab]           # always included
+  max_pages: 1
+  bullet_budget: 13
+  allow_summary: true
+  notes: "Aiming for graphics / GPU / game-engine roles; also open to ML systems and backend."
