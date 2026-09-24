@@ -28,6 +28,14 @@ from .state import State
 
 ROOT = Path(os.environ.get("INTERNWATCH_HOME", Path.cwd()))
 
+# Master switch for the email channel (ntfy/discord are unaffected).
+# Off right now: the Gmail account has 2FA, so SMTP_PASS must be a 16-char App
+# Password (https://myaccount.google.com/apppasswords) — a normal account
+# password gets rejected with "534 5.7.9 Application-specific password required".
+# After rotating the secret, flip this to True (or set INTERNWATCH_EMAIL=1) and
+# confirm with `python -m internwatch test-notify`.
+EMAIL_NOTIFICATIONS = os.environ.get("INTERNWATCH_EMAIL", "").lower() in ("1", "true", "yes")
+
 
 def _load_cfg(path: str) -> dict:
     return yaml.safe_load((ROOT / path).read_text())
@@ -86,7 +94,7 @@ def run(args) -> int:
     cfg = _load_cfg(args.config)
     state = State(ROOT / cfg.get("state_file", "state/seen.json"))
     flt = Filter(cfg)
-    notifier = Notifier(dry_run=args.dry_run)
+    notifier = Notifier(dry_run=args.dry_run, email=EMAIL_NOTIFICATIONS)
     out_dir = ROOT / "out"
     ncfg, tcfg = cfg.get("notify", {}), cfg.get("tailoring", {})
 
@@ -173,14 +181,17 @@ def tailor_cmd(args) -> int:
         print(res.summary_text)
     print(f"PDF: {res.pdf}\nChanges: {res.summary_md}  (fit {res.fit_score}/10, {len(res.warnings)} warnings)")
     if args.notify:
-        Notifier().send(Alert(job, f"Tailored: {job.company} — {job.title} · fit {res.fit_score}/10",
-                              res.summary_text, res.push_lines, [res.pdf, res.summary_md]))
+        Notifier(email=EMAIL_NOTIFICATIONS).send(
+            Alert(job, f"Tailored: {job.company} — {job.title} · fit {res.fit_score}/10",
+                  res.summary_text, res.push_lines, [res.pdf, res.summary_md]))
     return 0
 
 
 def test_notify(args) -> int:
-    n = Notifier()
+    n = Notifier(email=EMAIL_NOTIFICATIONS)
     print("channels:", n.channels or "NONE — set NTFY_TOPIC and/or SMTP_* / DISCORD_WEBHOOK_URL")
+    if not EMAIL_NOTIFICATIONS:
+        print("  (email disabled by EMAIL_NOTIFICATIONS — set INTERNWATCH_EMAIL=1 to include it)")
     job = Job("test", "Example Co", "Software Engineering Intern (test alert)", "https://example.com/job",
               ["Irvine, CA"], time.time())
     n.send(Alert(job, "internwatch test alert", "If you got this, notifications work.", ["It works."]))

@@ -41,13 +41,14 @@ def _one_line(s: str) -> str:
 
 
 class Notifier:
-    def __init__(self, dry_run: bool = False):
+    def __init__(self, dry_run: bool = False, email: bool = True):
         self.dry = dry_run
         e = os.environ.get
         self.ntfy_topic = e("NTFY_TOPIC")
         self.ntfy_server = (e("NTFY_SERVER") or "https://ntfy.sh").rstrip("/")
         self.ntfy_token = e("NTFY_TOKEN")
         self.smtp = (e("SMTP_HOST"), int(e("SMTP_PORT") or 465), e("SMTP_USER"), e("SMTP_PASS"), e("EMAIL_TO"))
+        self.email_enabled = email
         self.discord = e("DISCORD_WEBHOOK_URL")
 
     @property
@@ -55,11 +56,19 @@ class Notifier:
         c = []
         if self.ntfy_topic:
             c.append("ntfy")
-        if all(self.smtp[i] for i in (0, 2, 3, 4)):
+        if self.email_enabled and all(self.smtp[i] for i in (0, 2, 3, 4)):
             c.append("email")
         if self.discord:
             c.append("discord")
         return c
+
+    def _guard(self, ch: str, fn, *a, **kw) -> None:
+        """Run one channel's send. A broken channel must never take down the run:
+        the poll already succeeded and the logbook is already on disk by this point."""
+        try:
+            fn(*a, **kw)
+        except Exception as ex:  # noqa: BLE001
+            print(f"  ! {ch} failed: {ex}")
 
     def send(self, a: Alert) -> None:
         if self.dry:
@@ -67,10 +76,7 @@ class Notifier:
                   + (f"\n  attachments: {[str(p) for p in a.attachments]}" if a.attachments else ""))
             return
         for ch in self.channels:
-            try:
-                getattr(self, f"_{ch}")(a)
-            except Exception as ex:  # noqa: BLE001 - one broken channel shouldn't block the others
-                print(f"  ! {ch} failed: {ex}")
+            self._guard(ch, getattr(self, f"_{ch}"), a)
 
     def digest(self, jobs: list[Job]) -> None:
         """Lower-priority matches, batched into one push per run."""
@@ -82,10 +88,11 @@ class Notifier:
             print(f"\n[DRY RUN digest] {len(jobs)} other matches\n" + "\n".join(lines) + more)
             return
         if self.ntfy_topic:
-            self._ntfy_raw(title=f"{len(jobs)} more internship matches", message="\n".join(lines) + more,
-                           priority=2, tags="clipboard")
-        if "email" in self.channels and len(jobs) >= 1:
-            self._email_raw(f"[internwatch] {len(jobs)} more matches", "\n".join(lines) + more, [])
+            self._guard("ntfy", self._ntfy_raw, title=f"{len(jobs)} more internship matches",
+                        message="\n".join(lines) + more, priority=2, tags="clipboard")
+        if "email" in self.channels:
+            self._guard("email", self._email_raw, f"[internwatch] {len(jobs)} more matches",
+                        "\n".join(lines) + more, [])
 
     # ---- channels -----------------------------------------------------------------
     def _ntfy_raw(self, title: str, message: str, priority: int = 3, tags: str = "", click: str = "",

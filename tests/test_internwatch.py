@@ -169,3 +169,39 @@ def test_email_has_pdf_and_html(tmp_path, monkeypatch):
     assert "Graphics Intern" in m["Subject"]
     assert [p.get_filename() for p in m.iter_attachments()] == ["r.pdf"]
     assert "<h3>Changes</h3>" in m.get_body(("html",)).get_content()
+
+
+def _smtp_env(monkeypatch):
+    for k, v in dict(SMTP_HOST="smtp.test", SMTP_USER="me@test", SMTP_PASS="pw", EMAIL_TO="me@test").items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
+
+
+def test_email_flag_disables_channel(monkeypatch):
+    """The email=False switch drops the channel even with every SMTP_* secret present."""
+    _smtp_env(monkeypatch)
+    assert Notifier().channels == ["email"]
+    assert Notifier(email=False).channels == []
+
+    def boom(*a, **k):
+        raise AssertionError("SMTP must not be touched when email is disabled")
+
+    with mock.patch("smtplib.SMTP_SSL", boom):
+        Notifier(email=False).send(Alert(_job("Graphics Intern"), "New!", "", ["x"]))
+        Notifier(email=False).digest([_job("Graphics Intern")])
+
+
+def test_digest_survives_broken_email(monkeypatch, capsys):
+    """A failing channel in digest() is logged, not raised — a dead mail server
+    must not fail the whole poll (the 534 App Password outage did exactly that)."""
+    _smtp_env(monkeypatch)
+
+    def boom(*a, **k):
+        raise OSError("Connection unexpectedly closed")
+
+    with mock.patch("smtplib.SMTP_SSL", boom):
+        Notifier().digest([_job("Graphics Intern")])          # must not raise
+        Notifier().send(Alert(_job("Graphics Intern"), "New!", "", ["x"]))
+    out = capsys.readouterr().out
+    assert out.count("! email failed") == 2
