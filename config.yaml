@@ -250,6 +250,19 @@ notify:
   instant_min_score: 5     # below this, matches go into one digest per run instead of a push each
   digest: true
 
+# ─── Markdown logbook ─────────────────────────────────────────────────────────────────
+# Every match (instant + digest) is appended to internwatch-YYYY-MM.md in each directory
+# below, as Obsidian `- [ ]` task lines you can tick off once you've applied. Entries carry
+# a hidden canonical-URL marker, so re-runs never duplicate a posting. A directory that
+# doesn't exist is skipped with a warning (the vault isn't mounted in GitHub Actions).
+logbook:
+  enabled: true
+  filename: "internwatch-{month}.md"
+  create_dirs: true        # make the repo-local applications/ dir on first write
+  dirs:
+    - applications                                          # relative → repo folder
+    - ~/obsidian/main-vault/work                            # Obsidian work folder
+
 tailoring:
   enabled: true
   resume: resume.yaml      # your base resume (see resume.example.yaml)

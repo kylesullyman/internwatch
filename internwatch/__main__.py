@@ -25,6 +25,7 @@ from .models import Job
 from .notify import Alert, Notifier
 from .sources import build_sources
 from .state import State
+from . import logbook
 
 ROOT = Path(os.environ.get("INTERNWATCH_HOME", Path.cwd()))
 
@@ -138,6 +139,9 @@ def run(args) -> int:
     budget = tcfg.get("max_per_run", 5)
     digest = []
     try:
+        # Write the logbook before alerting: if a tailoring call or a push fails,
+        # the links are already on disk.
+        logbook.write(new_matches, cfg, ROOT, dry_run=args.dry_run)
         for job in new_matches:
             if job.score >= instant_min:
                 do_tailor = can_tailor and job.score >= tailor_min and budget > 0

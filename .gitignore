@@ -3,8 +3,12 @@
 resume.yaml
 out/
 state/
+# Markdown logbook of matched postings — regenerated on every poll, and the vault
+# copy is the one you actually work from.
+applications/
 __pycache__/
 *.pyc
 .venv/
 .env
 .ntfy-topic
+.DS_Store

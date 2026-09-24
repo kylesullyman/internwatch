@@ -1,11 +1,13 @@
 import json
 import time
+from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
 
+from internwatch import logbook
 from internwatch import tailor as T
 from internwatch.filters import Filter, is_us
 from internwatch.models import Job, canonical_url
@@ -205,3 +207,80 @@ def test_digest_survives_broken_email(monkeypatch, capsys):
         Notifier().send(Alert(_job("Graphics Intern"), "New!", "", ["x"]))
     out = capsys.readouterr().out
     assert out.count("! email failed") == 2
+
+
+# ---- logbook -----------------------------------------------------------------------
+def _scored(company, title, url, score=9.0):
+    j = Job("greenhouse:x", company, title, url, ["Irvine, CA"], time.time())
+    j.score, j.score_reasons, j.extra["kind"] = score, ["bioinformatics +9"], "internship"
+    return j
+
+
+def _logcfg(*dirs):
+    return {"logbook": {"enabled": True, "filename": "internwatch-{month}.md",
+                        "create_dirs": True, "dirs": [str(d) for d in dirs]}}
+
+
+def test_logbook_writes_every_destination(tmp_path):
+    a, b = tmp_path / "applications", tmp_path / "vault"
+    b.mkdir()
+    jobs = [_scored("Insitro", "ML Intern, CompBio", "https://jobs.ashbyhq.com/insitro/1"),
+            _scored("Recursion", "Bioinformatics Intern", "https://boards.greenhouse.io/recursion/jobs/2")]
+    notes = logbook.write(jobs, _logcfg(a, b), tmp_path)
+    assert len(notes) == 2
+    text = notes[0].read_text()
+    assert text == notes[1].read_text()
+    assert text.count("- [ ]") == 2
+    assert "[Apply](https://jobs.ashbyhq.com/insitro/1)" in text
+    assert "tags: [career, job-search, applications, internwatch]" in text
+
+
+def test_logbook_dedupes_across_runs(tmp_path):
+    d = tmp_path / "applications"
+    cfg = _logcfg(d)
+    first = _scored("Recursion", "Bioinformatics Intern", "https://boards.greenhouse.io/recursion/jobs/2")
+    logbook.write([first], cfg, tmp_path)
+    # same posting, other Greenhouse host + tracking params, plus one genuinely new job
+    again = _scored("Recursion", "Bioinformatics Intern",
+                    "https://job-boards.greenhouse.io/recursion/jobs/2?utm_source=x")
+    new = _scored("Xaira", "Protein Design Intern", "https://boards.greenhouse.io/xaira/jobs/3")
+    logbook.write([again, new], cfg, tmp_path)
+    text = (d / f"internwatch-{datetime.now().strftime('%Y-%m')}.md").read_text()
+    assert text.count("- [ ]") == 2
+    assert text.count("Bioinformatics Intern") == 1
+    # a run with nothing new must not append an empty section
+    logbook.write([again], cfg, tmp_path)
+    assert text == (d / f"internwatch-{datetime.now().strftime('%Y-%m')}.md").read_text()
+
+
+def test_logbook_orders_entries_newest_first(tmp_path):
+    d = tmp_path / "applications"
+    now = time.time()
+    old = _scored("Insitro", "ML Intern", "https://x/1", score=9.9)
+    old.posted_at = now - 3 * 86400
+    newest = _scored("Xaira", "Protein Design Intern", "https://x/2", score=1.0)
+    newest.posted_at = now
+    middle = _scored("Recursion", "Bioinformatics Intern", "https://x/3", score=5.0)
+    middle.posted_at = now - 3600
+    undated = _scored("Genentech", "Data Intern", "https://x/4", score=7.0)
+    undated.posted_at = None
+    logbook.write([old, newest, middle, undated], _logcfg(d), tmp_path)
+    text = (d / f"internwatch-{datetime.now().strftime('%Y-%m')}.md").read_text()
+    order = [line.split("**")[1].split(" — ")[0] for line in text.splitlines() if line.startswith("- [ ]")]
+    # newest posting first, regardless of score; unknown posting date sinks to the end
+    assert order == ["Xaira", "Recursion", "Insitro", "Genentech"]
+
+
+def test_logbook_skips_missing_vault_without_inventing_it(tmp_path):
+    d, missing = tmp_path / "applications", tmp_path / "not-mounted" / "vault" / "work"
+    notes = logbook.write([_scored("Insitro", "ML Intern", "https://x/1")], _logcfg(d, missing), tmp_path)
+    assert len(notes) == 1 and d.is_dir()
+    assert not (tmp_path / "not-mounted").exists()
+
+
+def test_logbook_config_paths_resolve():
+    """The real config must point at the repo and the Obsidian work folder."""
+    dirs = logbook.destinations(CFG, ROOT)
+    assert ROOT / "applications" in dirs
+    assert any(d.name == "work" and "obsidian" in str(d) and "$" not in str(d) and "~" not in str(d)
+               for d in dirs), dirs
