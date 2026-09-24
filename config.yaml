@@ -29,8 +29,12 @@ sources:
   #   job-boards.greenhouse.io/<token>   jobs.lever.co/<token>   jobs.ashbyhq.com/<token>
   greenhouse: [anthropic, epicgames, riotgames, roblox, sonyinteractiveentertainmentglobal, naughtydog,
                insomniac, figma, discord, databricks, scaleai, waymo, nuro, spacex, neuralink, stripe,
-               cloudflare, pinterest, lyft, airbnb, doordashusa, robinhood, coinbase, samsara, twitch]
-  lever: [palantir, zoox, shieldai, spotify]
+               cloudflare, pinterest, lyft, airbnb, doordashusa, robinhood, coinbase, samsara, twitch,
+               # AI x biotech / techbio — all token-verified against the live Greenhouse API.
+               isomorphiclabs, recursionpharmaceuticals, xairatherapeutics, arcinstitute, calicolabs,
+               altoslabs, ginkgobioworks, generatebiomedicines, profluent, inceptive, newlimit,
+               manifoldbio, dynotherapeutics, colossalbiosciences, chanzuckerberginitiative]
+  lever: [palantir, zoox, shieldai, spotify, enveda]
   ashby:
     - openai
     - {board: rivianvw.tech, name: Rivian}
@@ -42,6 +46,14 @@ sources:
     - ramp
     - replit
     - harvey
+    # AI x biotech
+    - insitro
+    - benchling
+    - {board: chaidiscovery, name: Chai Discovery}
+    - {board: latchbio, name: Latch Bio}
+    - {board: cradlebio, name: Cradle Bio}
+    - {board: periodic-labs, name: Periodic Labs}
+    - asimov
   # Workday search isn't date-sorted, so each poll pages through every result for `search`.
   # Find host/site from any job URL: https://<host>/en-US/<site>/job/...
   workday:
@@ -61,10 +73,14 @@ filters:
                   "graduate program", rotational, "software engineer i", "associate software engineer"]
   title_exclude: [phd, ph.d, doctoral, "master's", masters, mba, sales, marketing, "business development",
                   recruiting, recruiter, "human resources", legal, accounting, "supply chain", manufacturing,
-                  mechanical, civil, chemical, "tax", "audit", "communications intern",
-                  senior, staff, principal, manager, analyst, analytics, insights, "data governance",
-                  "product design", ux, "ui/ux", analog, layout, "physical design", "mixed-signal", rf,
+                  mechanical, civil, "chemical engineering", "tax", "audit", "communications intern",
+                  senior, staff, principal, manager, "financial analyst", "business analyst", insights,
+                  "data governance", "product design", ux, "ui/ux", analog, "analog layout", "layout design",
+                  "physical design", "mixed-signal", rf,
                   "reliability engineer", "process engineer", technician, "labor relations", actuarial,
+                  # wet-lab / clinical biotech roles — we want the computational side
+                  "clinical operations", "clinical trial", "regulatory affairs", "quality assurance",
+                  "medicinal chemistry", "cell culture", "laboratory technician", "research associate",
                   "immediate start", "start immediately"]    # you can't start before graduating
   # Summer 2027 internships + new-grad roles. Titles naming another season/year (e.g. "New Grad
   # 2026", "Fall 2026 Intern") are dropped. Summer 2027 internships usually expect you to return
@@ -79,6 +95,65 @@ filters:
 # ─── Ranking (decides instant alert vs. digest, and what gets a tailored resume) ───────
 scoring:
   title_keywords:
+    # ── AI x biotech (the target) ──────────────────────────────────────────────
+    # Note: keyword matching is whole-word, so "bio" will NOT match "bioinformatics".
+    # Every variant you want scored has to be listed explicitly.
+    bioinformatics: 9
+    "computational biology": 9
+    "computational biologist": 9
+    "ai/ml": 6
+    "machine learning engineer": 6
+    biotech: 8
+    biotechnology: 8
+    "drug discovery": 8
+    "protein design": 8
+    "protein engineering": 8
+    proteomics: 7
+    genomics: 7
+    genomic: 7
+    genetics: 6
+    "single cell": 6
+    "molecular dynamics": 7
+    cheminformatics: 7
+    "computational chemistry": 7
+    biophysics: 6
+    "systems biology": 6
+    "synthetic biology": 6
+    "lab automation": 6
+    "scientific computing": 5
+    "research engineer": 5
+    "bio": 5            # matches the standalone token, e.g. "SWE Intern, Bio Platform"
+    biology: 6
+    biological: 5
+    "life sciences": 5
+    "computational imaging": 5
+    microscopy: 4
+    sequencing: 5
+    crispr: 5
+    "clinical data": 4
+    "medical imaging": 5
+    healthcare: 3
+    "digital biology": 8
+    techbio: 8
+    # ── Technical art ─────────────────────────────────────────────────────────
+    "technical artist": 7
+    "technical art": 7
+    "tech art": 7
+    "technical director": 5
+    "pipeline td": 6
+    "look development": 6
+    "lookdev": 6
+    rigging: 6
+    rigger: 6
+    "character tech": 6
+    "procedural generation": 5
+    procedural: 4
+    houdini: 6
+    maya: 4
+    vfx: 5
+    "visual effects": 5
+    "art pipeline": 6
+    # ── Graphics / engine ─────────────────────────────────────────────────────
     graphics: 6
     rendering: 6
     gpu: 6
@@ -114,7 +189,31 @@ scoring:
     robotics: 2
     embedded: 2
     research: 1
-  company_boost:
+  company_boost:          # first match wins, so the biotech names are listed first
+    # AI x biotech — names as the ATS reports them (verified against each board's API)
+    "Isomorphic Labs": 9
+    Recursion: 8
+    Insitro: 8
+    "Xaira Therapeutics": 8
+    "Chai Discovery": 8
+    "Arc Institute": 8
+    "Calico": 7
+    "Altos Labs": 7
+    Profluent: 7
+    "Generate Biomedicines": 7
+    Inceptive: 7
+    "Ginkgo Bioworks": 6
+    Benchling: 6
+    "Latch Bio": 6
+    "Cradle Bio": 6
+    NewLimit: 6
+    "Manifold Bio": 6
+    "Dyno Therapeutics": 6
+    Enveda: 6
+    Asimov: 6
+    "Periodic Labs": 6
+    "Colossal Biosciences": 5
+    "Chan Zuckerberg Initiative": 5
     NVIDIA: 8
     Epic Games: 4
     Riot Games: 4

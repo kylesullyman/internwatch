@@ -35,6 +35,13 @@ figma photoshop
 logisim
 obsidian mcp
 optics photonics polarimetry lasers labview
+bioinformatics computational biology genomics proteomics transcriptomics single-cell scrna-seq
+crispr pcr fasta fastq bam vcf blast biopython bioconductor samtools bwa rdkit openbabel pymol
+alphafold rosetta esm protein folding protein design molecular dynamics gromacs openmm autodock
+docking cheminformatics smiles admet qsar scanpy anndata seurat plink nextflow snakemake cwl
+benchling lims flow cytometry mass spectrometry microscopy segmentation cellprofiler imagej napari
+houdini vex maya mel openusd alembic substance designer substance painter nuke katana renderman arnold
+speedtree ziva marvelous designer shotgrid pyside2 rigging skinning lookdev
 """.split("\n")
 
 # multi-word phrases stay intact; single words split out
@@ -46,13 +53,18 @@ for line in TECH_TERMS:
     for multi in re.findall(r"(unreal engine|ray tracing|path tracing|compute shaders|rendering pipeline|"
                             r"hugging face|vector database|reinforcement learning|computer vision|deep learning|"
                             r"machine learning|neural networks|github actions|distributed systems|unit testing|"
-                            r"raspberry pi|asp\.net)", line):
+                            r"raspberry pi|asp\.net|"
+                            r"computational biology|protein folding|protein design|molecular dynamics|"
+                            r"mass spectrometry|flow cytometry|substance designer|substance painter|"
+                            r"marvelous designer)", line):
         _TERMS.add(multi)
         line = line.replace(multi, " ")
     _TERMS.update(w for w in line.split() if w)
 
 # Ambiguous as plain English; only counted in the fabrication guard when capitalized in the text.
-AMBIGUOUS = {"c", "r", "go", "rest", "make", "spark", "express", "metal", "node", "shell", "can", "lambda"}
+AMBIGUOUS = {"c", "r", "go", "rest", "make", "spark", "express", "metal", "node", "shell", "can", "lambda",
+             # bio/VFX terms that are also ordinary words: only count as SMILES, BLAST, BAM, MEL, Nuke...
+             "smiles", "blast", "bam", "esm", "mel", "vex", "nuke", "katana", "arnold", "alembic"}
 
 
 def term_regex(term: str) -> re.Pattern:
