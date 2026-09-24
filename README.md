@@ -69,6 +69,8 @@ To test notifications locally: `NTFY_TOPIC=... python -m internwatch test-notify
 - **Run on your own machine** instead of Actions: `python -m internwatch loop --every 300` (loads env vars from your shell).
 - **Preview what would alert** without sending anything: `python -m internwatch run --dry-run -v`
 - **Check every source is reachable:** `python -m internwatch sources`
+- **Find work during school now:** `python -m internwatch positions` refreshes `currently-open-positions.md` in the repo root without alerts or seen-state changes. Normal polls refresh it too, even on the first run. It ranks explicitly part-time technical/creative openings near OC/LA or listed as remote ahead of fall/winter internships whose hours are unconfirmed. It does **not** apply the Summer 2027 or 72-hour alert filters, and drops listings no longer on a monitored ATS board. Check hours, eligibility, and the application page yourself. Edit `current_positions.local_locations` and `min_score` to widen or narrow it.
+- **In GitHub Actions:** each normal poll uploads a one-day `currently-open-positions` artifact, downloadable from that run. Actions runs in an ephemeral checkout, so the copy in the repo only updates when you run the command locally and commit it; Actions does not update your local file or Obsidian vault. Campus/Handshake jobs and unmonitored employers are not included.
 
 ## Tuning (`config.yaml`)
 

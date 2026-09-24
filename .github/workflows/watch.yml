@@ -73,6 +73,17 @@ jobs:
         if: ${{ !inputs.tailor_url }}
         run: python -m internwatch run
 
+      # Public job links only, no resume or private data. Checkout is ephemeral in
+      # Actions: keep the refreshed file downloadable without committing every poll.
+      - name: Keep open positions snapshot
+        if: ${{ !inputs.tailor_url }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: currently-open-positions-${{ github.run_id }}
+          path: currently-open-positions.md
+          if-no-files-found: warn
+          retention-days: 1
+
       - name: Tailor on demand
         if: ${{ inputs.tailor_url }}
         env:

@@ -5,6 +5,7 @@
   python -m internwatch tailor URL [--company X --title Y]   tailor for one posting on demand
   python -m internwatch test-notify            send a test alert to every configured channel
   python -m internwatch sources                list configured sources and how many jobs each returns
+  python -m internwatch positions              refresh currently-open-positions.md without alerts
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ from .models import Job
 from .notify import Alert, Notifier
 from .sources import build_sources
 from .state import State
-from . import logbook
+from . import logbook, open_positions
 
 ROOT = Path(os.environ.get("INTERNWATCH_HOME", Path.cwd()))
 
@@ -101,6 +102,8 @@ def run(args) -> int:
 
     t0 = time.time()
     results = fetch_all(cfg)
+    # This snapshot is independent of seen-job state, including on the first run.
+    open_positions.write(results, cfg, ROOT, dry_run=args.dry_run)
     new_matches: list[Job] = []
     for sid, res in sorted(results.items()):
         if isinstance(res, Exception):
@@ -202,6 +205,11 @@ def test_notify(args) -> int:
     return 0
 
 
+def positions_cmd(args) -> int:
+    cfg = _load_cfg(args.config)
+    return 0 if open_positions.write(fetch_all(cfg), cfg, ROOT) else 1
+
+
 def sources_cmd(args) -> int:
     cfg = _load_cfg(args.config)
     for sid, res in sorted(fetch_all(cfg).items()):
@@ -228,9 +236,10 @@ def main() -> int:
     p.add_argument("--print", action="store_true", help="print the full change summary")
     sub.add_parser("test-notify")
     sub.add_parser("sources")
+    sub.add_parser("positions", help="refresh the open positions snapshot without alerts")
     args = ap.parse_args()
     return {"run": run, "loop": loop, "tailor": tailor_cmd, "test-notify": test_notify,
-            "sources": sources_cmd}[args.cmd](args)
+            "sources": sources_cmd, "positions": positions_cmd}[args.cmd](args)
 
 
 if __name__ == "__main__":

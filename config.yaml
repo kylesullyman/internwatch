@@ -246,6 +246,18 @@ scoring:
     California: 1
     Remote: 1
 
+# ─── Live school-year / part-time shortlist ───────────────────────────────────────────
+# Rebuilt from every open ATS listing each poll, including already-seen jobs. This is
+# separate from the Summer 2027 alert filters above. Only roles in these local areas
+# or listed as remote are considered; edit the cities for your school location.
+current_positions:
+  enabled: true
+  filename: currently-open-positions.md
+  min_score: 2
+  local_locations: [Irvine, "Orange County", "Costa Mesa", "Santa Ana", Anaheim,
+                    "Los Angeles", "Santa Monica", "Culver City", "El Segundo", Burbank,
+                    Glendale, Pasadena, "Long Beach"]
+
 notify:
   instant_min_score: 5     # below this, matches go into one digest per run instead of a push each
   digest: true

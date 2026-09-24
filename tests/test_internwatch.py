@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 import yaml
 
-from internwatch import logbook
+from internwatch import logbook, open_positions
 from internwatch import tailor as T
 from internwatch.filters import Filter, is_us
 from internwatch.models import Job, canonical_url
@@ -284,3 +284,80 @@ def test_logbook_config_paths_resolve():
     assert ROOT / "applications" in dirs
     assert any(d.name == "work" and "obsidian" in str(d) and "$" not in str(d) and "~" not in str(d)
                for d in dirs), dirs
+
+
+# ---- current school-year openings ---------------------------------------------------
+def test_open_positions_prioritizes_part_time_without_summer_alert_filters():
+    now = datetime(2026, 9, 24)
+    jobs = [
+        _job("Technical Developer Specialist, USA (Part-Time Contract)", source="greenhouse:roblox",
+             company="Roblox", locations=["Remote"]),
+        _job("Software Engineer Intern (Winter 2027)", source="greenhouse:figma",
+             company="Figma", locations=["Los Angeles, CA"]),
+        _job("Applied AI Intern - Fall 2026", source="workday:nvidia", company="NVIDIA"),
+        _job("Part-Time Marketing Intern", source="ashby:x"),
+        _job("Software Engineer Intern (Summer 2027)", source="ashby:x"),
+        _job("Research Intern (Winter 2026)", source="ashby:x"),
+        _job("Game Engine Intern (Fall 2027)", source="ashby:x"),
+        _job("Software Engineer I (Graduation Date: Fall 2026-Summer 2027)", source="ashby:x"),
+        _job("Software Engineer Intern (Winter 2027)", source="ashby:x", locations=["Canada"]),
+        _job("Data Analyst (Part-time)", source="lever:zoox", locations=["Foster City, CA"]),
+        _job("Data Analyst (Part-time)", source="simplify"),
+    ]
+    for n, job in enumerate(jobs):
+        job.url = f"https://example.com/jobs/{n}"
+    part, seasonal = open_positions.select(jobs, CFG, now)
+    assert [j.title for j in part] == ["Technical Developer Specialist, USA (Part-Time Contract)"]
+    assert {j.title for j in seasonal} == {"Software Engineer Intern (Winter 2027)", "Applied AI Intern - Fall 2026"}
+
+
+def test_open_positions_metadata_description_and_deduping():
+    now = datetime(2026, 9, 24)
+    ashby = _job("IT Support Associate", source="ashby:x", extra={"employmentType": "PartTime"})
+    lever = _job("Robotics Research Student", source="lever:x",
+                 description="This role is part-time and works alongside school.")
+    lever.url = "https://example.com/jobs/research"
+    duplicate = _job("IT Support Associate", source="ashby:x", extra={"employmentType": "PartTime"})
+    foreign = _job("Technical Artist (part-time) - LATAM", source="greenhouse:x", locations=["Remote"])
+    part, seasonal = open_positions.select([ashby, lever, duplicate, foreign], CFG, now)
+    assert [j.title for j in part] == ["Robotics Research Student", "IT Support Associate"]
+    assert seasonal == []
+
+
+def test_open_positions_refresh_removes_closed_and_respects_dry_run(tmp_path):
+    job = _job("Software Developer (part-time)", source="greenhouse:x")
+    path = tmp_path / "currently-open-positions.md"
+    assert open_positions.write({"greenhouse:x": [job]}, CFG, tmp_path, dry_run=True) is None
+    assert not path.exists()
+    assert open_positions.write({"greenhouse:x": [job, job]}, CFG, tmp_path) == path
+    assert path.read_text().count("[Apply]") == 1
+    assert open_positions.write({"greenhouse:x": []}, CFG, tmp_path) == path
+    assert "No matching part-time openings" in path.read_text()
+    assert "[Apply]" not in path.read_text()
+    before = path.read_text()
+    assert open_positions.write({"greenhouse:x": RuntimeError("offline")}, CFG, tmp_path) is None
+    assert path.read_text() == before
+
+
+def test_open_positions_reports_partial_failure(tmp_path):
+    job = _job("AI Developer (part time)", source="greenhouse:x")
+    open_positions.write({"greenhouse:x": [job], "ashby:y": RuntimeError("offline")}, CFG, tmp_path)
+    text = (tmp_path / "currently-open-positions.md").read_text()
+    assert "Incomplete snapshot" in text and "ashby:y" in text and "AI Developer" in text
+
+
+def test_run_writes_positions_on_first_run_without_alerts(tmp_path, monkeypatch):
+    from internwatch import __main__ as main
+    from types import SimpleNamespace
+
+    job = _job("Technical Developer Specialist, USA (Part-Time Contract)", source="greenhouse:roblox",
+               company="Roblox", locations=["Remote"])
+    cfg = {**CFG, "logbook": {"enabled": False}, "state_file": "state/seen.json"}
+    monkeypatch.setattr(main, "ROOT", tmp_path)
+    monkeypatch.setattr(main, "_load_cfg", lambda _: cfg)
+    monkeypatch.setattr(main, "fetch_all", lambda _: {"greenhouse:roblox": [job]})
+    assert main.run(SimpleNamespace(config="config.yaml", dry_run=False, save=False, verbose=False)) == 0
+    path = tmp_path / "currently-open-positions.md"
+    assert "Technical Developer Specialist" in path.read_text()
+    assert main.run(SimpleNamespace(config="config.yaml", dry_run=False, save=False, verbose=False)) == 0
+    assert path.read_text().count("[Apply]") == 1
